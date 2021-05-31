@@ -3,8 +3,8 @@ class Port {
   async init() {
     const serial = navigator.serial;
     this.serialPort = await serial.requestPort();
-    const speed = 1000000
-    //const speed = 115200
+    //const speed = 1000000
+    const speed = 115200*4
     await this.serialPort.open({
       baudRate: speed,
       bufferSize: 1 * 1024 * 1024
