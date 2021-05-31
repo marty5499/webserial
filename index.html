@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <style type="text/css">
+  .btn-group-offline button {
+    background-color: #f45566;
+    border: 1px solid green;
+    color: white;
+    padding: 10px 24px;
+    cursor: pointer;
+    float: left;
+  }
+
+  .btn-group button {
+    background-color: #04AA6D;
+    border: 1px solid green;
+    color: white;
+    padding: 10px 24px;
+    cursor: pointer;
+    float: left;
+  }
+
+  /* Clear floats (clearfix hack) */
+  .btn-group:after {
+    content: "";
+    clear: both;
+    display: table;
+  }
+
+  .btn-group button:not(:last-child) {
+    border-right: none;
+    /* Prevent double borders */
+  }
+
+  /* Add a background color on hover */
+  .btn-group button:hover {
+    background-color: #3e8e41;
+  }
+  </style>
+</head>
+
+<body>
+  <p>WebSerial:</p>
+  <div class="btn-group-offline" style="width:100%">
+    <button id='btn' style="width:20%" onclick="requestSerialPort()">取得連線</button>
+    <!--
+    <button style="width:20%" onclick="cmd_deviceID()">取得DeviceID</button>
+  -->
+    <button style="width:20%" onclick="cmd_webaiMem()">資訊</button>
+    <button style="width:20%" onclick="cmd_snapshot()">拍照</button>
+    <button style="width:20%" onclick="cmd_flashWrite()">燒錄</button>
+    <button style="width:20%" onclick="cmd_flashRead()">讀檔</button>
+  </div><br><br>
+  DeviceID: <span id='show'></span><br>
+  <img id='jpg' width=320 height=240>
+  <div id='msg'>waiting...</div>
+  <script src='webai.js'></script>
+  <script type="text/javascript">
+  async function requestSerialPort() {
+    await webai.requestSerialPort()
+    msg.innerHTML = await webai.cmd_clear()
+    btn.innerHTML = '已連線'
+    show.innerHTML = await webai.cmd_deviceID()
+    g = document.getElementsByClassName('btn-group-offline')[0]
+    g.className = 'btn-group'
+  }
+
+  async function cmd_webaiMem(){
+    console.log(await webai.cmd_mem())
+  }
+
+  async function cmd_deviceID() {
+    show.innerHTML = ''
+    show.innerHTML = await webai.cmd_deviceID()
+  }
+
+  async function cmd_flashWrite() {
+    var data = new Uint8Array([1,2,3])
+    msg.innerHTML = "start..."
+    var resp = await webai.cmd_flashWrite(0xFF0000,data)
+    msg.innerHTML = "flash_write :"+resp
+  }
+
+  async function cmd_flashRead() {
+    // 0x400000 ~ 0x6FFFFF
+    var cnt = 1
+    // SPIFFS
+    var addr = 0x400000
+    var totalSize = 3145727  // 0x6FFFFF - 0x400000 = 0x2FFFFF
+    var blockSize = 100*1024
+    var readSize = 0
+    var percent = 0
+
+
+    addr = 0xFF0000
+    totalSize = 3
+
+    var flashContent = []
+    var stime = Date.now();
+    msg.innerHTML = 'read addr: '+addr+' , 0.0%'
+    var loop = async function () {
+      flashContent.push(await webai.cmd_flashRead(addr, blockSize))
+      await new Promise(r => setTimeout(r, 100));
+      if(readSize+blockSize > totalSize) {
+        blockSize = totalSize-readSize
+      }      
+      readSize += blockSize
+      percent = parseInt(readSize/totalSize*1000)/10.0
+      var msgInfo = "read addr: 0x"+addr.toString(16)+" , "+percent+"%";
+      msg.innerHTML = msgInfo
+      console.log(msgInfo);
+      if(readSize == totalSize) {
+        return
+      }
+      addr += blockSize
+      await loop() //requestAnimationFrame(loop);
+    }
+    await loop() //requestAnimationFrame(loop);
+    return flashContent;
+  }
+
+  async function cmd_snapshot() {
+    var cnt = 0
+    var loop = async function () {
+      blob = await webai.cmd_snapshot();
+      jpg.src = URL.createObjectURL(blob);
+      await new Promise(r => setTimeout(r, 10));
+      console.log("time:",cnt++)
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+  </script>
+</body>
+
+</html>
