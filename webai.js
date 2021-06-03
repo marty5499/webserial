@@ -2,9 +2,10 @@ class Port {
 
   async init() {
     const serial = navigator.serial;
-    this.serialPort = await serial.requestPort();
+    const filter = { usbVendorId: 6790 };
+    this.serialPort = await serial.requestPort({ filters: [filter] });
     //const speed = 1000000
-    const speed = 115200*4
+    const speed = 115200 * 1
     await this.serialPort.open({
       baudRate: speed,
       bufferSize: 1 * 1024 * 1024
@@ -12,27 +13,27 @@ class Port {
     this.textEncoder = new TextEncoder();
   }
 
-  async openReader(){
+  async openReader() {
     this.reader = await this.serialPort.readable.getReader()
     return this.reader
   }
 
-  async releaseReader(){
-  	this.reader.releaseLock()
+  async releaseReader() {
+    this.reader.releaseLock()
   }
 
-  async openWriter(){
+  async openWriter() {
     this.writer = await this.serialPort.writable.getWriter()
     return this.writer
   }
 
-  async releaseWriter(){
-  	this.writer.releaseLock()
+  async releaseWriter() {
+    this.writer.releaseLock()
   }
 
-  async writeLine(data){
-  	var uint8array = this.textEncoder.encode(data+"\r\n");
-  	await this.writer.write(uint8array)
+  async writeLine(data) {
+    var uint8array = this.textEncoder.encode(data + "\r\n");
+    await this.writer.write(uint8array)
   }
 
   async restart() {
@@ -109,7 +110,7 @@ class WebAI {
     var w = await this.port.serialPort.writable.getWriter()
     var ctrl_C = new Uint8Array([0x03])
     for (var i = 0; i < 10; i++) {
-      console.log("ctrl+c",i)
+      console.log("ctrl+c", i)
       await w.write(ctrl_C)
       console.log("ctrl+c...ok")
       await new Promise(r => setTimeout(r, 100));
@@ -123,12 +124,35 @@ class WebAI {
     //*/
   }
 
-  async cmd(cmd){
-  	cmd = cmd +"\r\n"
-  	await this.port.writer.write(cmd);
+  async exec(code) {
+    //console.log(">>>", code, code.length)
+    await this.port.writeLine("execREPL");
+    await this.port.writeLine(code.length);
+    await this.port.writeLine(code)
+    // wait for data comming
+    
+    var rtnInfo = ''
+    do {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      var { value, done } = await this.port.reader.read();
+      var buf = value
+      do {
+        var { text, buf } = this.port.readLine(buf)
+        rtnInfo = rtnInfo + text + '\r\n'
+      } while (buf.length > 0)
+
+    } while(rtnInfo.indexOf("_REPL_OK_")==-1)
+    rtnInfo = rtnInfo.replace("_REPL_OK_",'').trim()
+    return rtnInfo
+  }
+
+
+  async cmd(cmd) {
+    cmd = cmd + "\r\n"
+    await this.port.writer.write(cmd);
     var { value, done } = await this.port.reader.read();
     var { text, buf } = this.port.readLine(value)
-    console.log("resp:",text);
+    console.log("resp:", text);
     return text
   }
 
@@ -141,24 +165,24 @@ class WebAI {
   }
 
   async cmd_clear() {
-    await this.port.writeLine("clear");
-    var { value, done } = await this.port.reader.read();
-    var { text, buf } = this.port.readLine(value)
+    do {
+      await this.port.writeLine("clear");
+      var { value, done } = await this.port.reader.read();
+      var { text, buf } = this.port.readLine(value)
+    } while (text != 'cmd_clear OK')
     return text
   }
 
   async cmd_mem() {
     await this.port.writeLine("mem");
+    // wait for data comming
+    await new Promise(resolve => setTimeout(resolve, 100));
     var { value, done } = await this.port.reader.read();
     var memInfo = ''
-    var { text, buf } = this.port.readLine(value)
-    memInfo += text + '\r\n'
-    var { text, buf } = this.port.readLine(buf)
-    memInfo += text + '\r\n'
-    var { text, buf } = this.port.readLine(buf)
-    memInfo += text + '\r\n'
-    var { text, buf } = this.port.readLine(buf)
-    memInfo += text + '\r\n'
+    do {
+      var { text, buf } = this.port.readLine(value)
+      memInfo += text + '\r\n'
+    } while (buf.length > 0)
     return memInfo
   }
 
@@ -182,9 +206,9 @@ class WebAI {
     return await this.port.readByteArray()
   }
 
-  async cmd_flashWrite(addr,data) {
+  async cmd_flashWrite(addr, data) {
     await this.port.writeLine("flashWrite");
-    await this.port.writeLine(addr+","+data.length);
+    await this.port.writeLine(addr + "," + data.length);
     await this.port.writer.write(data)
     var { value, done } = await this.port.reader.read();
     return new TextDecoder().decode(value)

@@ -3,44 +3,9 @@
 
 <head>
   <meta charset="utf-8">
-  <style type="text/css">
-  .btn-group-offline button {
-    background-color: #f45566;
-    border: 1px solid green;
-    color: white;
-    padding: 10px 24px;
-    cursor: pointer;
-    float: left;
-  }
-
-  .btn-group button {
-    background-color: #04AA6D;
-    border: 1px solid green;
-    color: white;
-    padding: 10px 24px;
-    cursor: pointer;
-    float: left;
-  }
-
-  /* Clear floats (clearfix hack) */
-  .btn-group:after {
-    content: "";
-    clear: both;
-    display: table;
-  }
-
-  .btn-group button:not(:last-child) {
-    border-right: none;
-    /* Prevent double borders */
-  }
-
-  /* Add a background color on hover */
-  .btn-group button:hover {
-    background-color: #3e8e41;
-  }
-  </style>
+  <link rel="stylesheet" type="text/css" href="index.css">
 </head>
-
+ 
 <body>
   <p>WebSerial:</p>
   <div class="btn-group-offline" style="width:100%">
@@ -54,10 +19,33 @@
     <button style="width:20%" onclick="cmd_flashRead()">讀檔</button>
   </div><br><br>
   DeviceID: <span id='show'></span><br>
+  <div>respText:<span id='msg'>waiting...</span></div>
+
+  <textarea id="code" rows="15" cols="50" onkeypress="keyCode(this,event)"
+    style="background-color:#111111;color:#fefefe">print(123)</textarea>
+  <textarea id="output" readonly='true' rows="15" cols="50" style="background-color:#111111;color:#fefefe"></textarea>
+  <br><br>
+
+
   <img id='jpg' width=320 height=240>
-  <div id='msg'>waiting...</div>
+
+
   <script src='webai.js'></script>
   <script type="text/javascript">
+    code = document.getElementById('code');
+    output = document.getElementById('output');
+    async function keyCode(ta,event){
+      if(event.keyCode ==13){
+        output.value = ''
+        msg.innerHTML = "webai.exec()..."
+        code = ta.value.trim()
+        rtnMsg = await webai.exec(code)
+        output.value = rtnMsg
+        msg.innerHTML = "OK"
+      }
+    }
+
+
   async function requestSerialPort() {
     await webai.requestSerialPort()
     msg.innerHTML = await webai.cmd_clear()
@@ -92,8 +80,6 @@
     var blockSize = 100*1024
     var readSize = 0
     var percent = 0
-
-
     addr = 0xFF0000
     totalSize = 3
 
@@ -128,7 +114,7 @@
       jpg.src = URL.createObjectURL(blob);
       await new Promise(r => setTimeout(r, 10));
       console.log("time:",cnt++)
-      requestAnimationFrame(loop);
+      //requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
   }
