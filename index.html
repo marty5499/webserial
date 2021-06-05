@@ -21,8 +21,8 @@
   DeviceID: <span id='show'></span><br>
   <div>respText:<span id='msg'>waiting...</span></div>
 
-  <textarea id="code" rows="15" cols="50" onkeypress="keyCode(this,event)"
-    style="background-color:#111111;color:#fefefe">print(123)</textarea>
+  <textarea id="code" rows="15" cols="50" onkeypress="keyCode(this,event)" onfocus="clearCode(this,event)"  
+    style="background-color:#111111;color:#fefefe"></textarea>
   <textarea id="output" readonly='true' rows="15" cols="50" style="background-color:#111111;color:#fefefe"></textarea>
   <br><br>
 
@@ -34,6 +34,11 @@
   <script type="text/javascript">
     code = document.getElementById('code');
     output = document.getElementById('output');
+
+    function clearCode(ta,event){
+      ta.value=''
+    }
+
     async function keyCode(ta,event){
       if(event.keyCode ==13){
         output.value = ''
@@ -46,11 +51,17 @@
     }
 
 
+  async function updateBoardState(){
+    await webai.exec('usbConnected()')
+    await webai.exec('wifiDisconnect()')
+  }
+
   async function requestSerialPort() {
     await webai.requestSerialPort()
     msg.innerHTML = await webai.cmd_clear()
     btn.innerHTML = '已連線'
     show.innerHTML = await webai.cmd_deviceID()
+    await updateBoardState()
     g = document.getElementsByClassName('btn-group-offline')[0]
     g.className = 'btn-group'
   }

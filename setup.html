@@ -11,7 +11,7 @@
       <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
       <link rel="stylesheet" type="text/css" href="setup.css">
-      <br><br><br><br>
+      <br><br>
       <div class="container-fluid container-bg2">
          <div class="row">
             <div class="col-md-2">
@@ -25,34 +25,34 @@
                         Web:AI
                      </h3>
                      <h5 class="text-info text-center">
-                        <img alt="Bootstrap Image Preview" src="https://md.kingkit.codes/uploads/upload_94e07c1fa596fd14f3e99d18e268647c.png" class="rounded" width="50%"/><br><br><button id='usb' class="btn btn-danger usb-btn" onclick='requestSerialPort()' >開發板連線</button><br><br>
+                        <img alt="Bootstrap Image Preview" src="https://md.kingkit.codes/uploads/upload_94e07c1fa596fd14f3e99d18e268647c.png" class="rounded" width="50%" />
+
+                        <br><button id='usb' class="btn btn-danger usb-btn" style='position: relative;top:10px' onclick='requestSerialPort()' >USB連線</button>
                      </h5>
+                     <h4 class="text-center" id='msg' display='None'></h4>
                      <div id='fwInfo'>
                         <div class="text-info text-center">
                            Device ID: <span id='deviceID'>---</span><br>
-                           目前版本: <span id='fw' style='font-size:9px'>---</span>
+                           目前版本: <span id='fw' style='font-size:9px'>---</span><div></div>
+                           最新版本: <span id='fwNew' style='font-size:9px'>---</span>
                         </div>
-                     </div>
-                     <div class="col text-center">
-                        <button id='checkFW' class="btn btn-info float-middle" onclick='checkFWVer()'>檢查更新</button>
                      </div>
                      <br>
                   </div>
                   <div class="col-md-7 container-form" id='form'>
-                     <br><br>
-                     <h4 class="text-info text-left">
-                     設定 WiFi 連線資訊
-                     </h6>
                      <br>
+                     <h4 class="text-info text-center">
+                     設定開發板 WiFi
+                     </h6><br><br>
                      <div class="form-group row">
-                        <label for="scan" class="col-3 col-form-label">WiFi AP Scan</label> 
+                        <label for="scan" class="col-4 col-form-label  text-center">自動偵測</label> 
                         <div class="col-6">
                            <select id="scan" name="wifiScan" class="custom-select" onchange='selectWiFiAP(this,event)'>
                            </select>
                         </div>
                      </div>
                      <div class="form-group row">
-                        <label for="ssid" class="col-3 col-form-label">WiFi SSID</label> 
+                        <label for="ssid" class="col-4 col-form-label text-center">WiFi SSID</label> 
                         <div class="col-6">
                            <div class="input-group">
                               <div class="input-group-prepend">
@@ -65,7 +65,7 @@
                         </div>
                      </div>
                      <div class="form-group row">
-                        <label for="pwd" class="col-3 col-form-label">WiFi Password</label> 
+                        <label for="pwd" class="col-4 col-form-label" text-center>WiFi Password</label> 
                         <div class="col-6">
                            <div class="input-group">
                               <div class="input-group-prepend">
@@ -93,7 +93,6 @@
       </div>
       <script src='webai.js'></script>
       <script type="text/javascript">
-      checkFW.style.display = 'None'
       save.style.display = 'None'
       form.style.display = 'None'
 
@@ -102,36 +101,63 @@
           deviceID.innerHTML = await webai.cmd_clear()
           deviceID.innerHTML = await webai.cmd_clear()
           deviceID.innerHTML = await webai.cmd_clear()
-          usb.innerHTML = '開發板連線'
+          usb.innerHTML = 'USB連線'
           deviceID.innerHTML = await webai.cmd_deviceID()
           usb.className = usb.className.replace(/btn-danger/g, "btn-success");
-          fw.innerHTML = await webai.exec('print(webai.ver)')
+          var fwVer = await webai.exec('print(webai.ver)')
+          fwVer = fwVer.replace('>>>','')
+          fw.innerHTML = fwVer
+          fwNew.innerHTML = fwVer
           usb.style.display = 'None'
-          checkFW.style.display = ''
+          await updateBoardState()
+
           await loadInfo()
           save.style.display = ''
           form.style.display = ''
           //0.1.6_0529_01 (最新版)
       }
 
+      async function updateBoardState(){
+        await webai.exec('usbConnected()')
+        await webai.exec('wifiDisconnect()')
+      }
+
       async function loadInfo() {
-          await setWiFiList()
-          var val = await webai.exec("print(webai.cfg.get('wifi'))")
-          if (val == "None") {
-              ssid.value = '尚未設定'
-              pwd.value = '尚未設定'
+          var val = await webai.exec("print(webai.cfg.get('wifi'))");
+          val = val.replace(/(\r\n|\n|\r)/gm, "");
+          val = val.replace('>>>',''); //bug
+          console.log("wifi info:["+val+']')
+          if (val=="None") {
+              ssid.value = ''
+              pwd.value = ''
+              msg.innerHTML = 'WiFi 無連接'
           } else {
               val = val.replaceAll("'", "\"")
               val = JSON.parse('{' + val.substring(1, val.length - 1) + '}')
               ssid.value = val['ssid']
               pwd.value = val['pwd']
           }
+          await setWiFiList()
       }
 
       async function saveInfo() {
           var cmd = "webai.cfg.put('wifi',{'ssid':'" + ssid.value + "','pwd':'" + pwd.value + "'})";
           var resp = await webai.exec(cmd);
-          alert('儲存成功')
+          await webai.exec('wifiDisconnect()')
+          msg.innerHTML = '已儲存，WiFi 連線中...'
+          console.log("[saveInfo()]",resp)
+          //msg
+          cmd = "webai.esp8285.wlan.connect('" + ssid.value + "','" + pwd.value + "')"
+          var wifiState = await webai.exec('print('+cmd+')')
+          console.log("[saveInfo()]",wifiState);
+          if(wifiState.indexOf('True')>=0){
+            msg.innerHTML = 'WiFi 已連接'
+            await webai.exec('wifiConnected()')
+          }else {
+            msg.innerHTML = '連不上 WiFi '
+            await webai.exec('wifiDisconnect()')
+          }
+          //alert('儲存成功')
       }
 
       async function checkFWVer() {
@@ -139,10 +165,8 @@
       }
 
       async function setWiFiList() {
-          addOption("開發板 WiFi 搜尋中...", "scanwifi")
-          //
           var wifiList = await webai.exec("print(webai.esp8285.at('AT+CWLAP'))");
-          scan.remove(scan.length - 1);
+          addOption("可連接 WiFi...", "")
           var list = getWiFiList(wifiList)
 
           for (var i = 0; i < list.length; i++) {
@@ -178,7 +202,7 @@
       function selectWiFiAP(ele, event) {
           ssid.value = ele.value;
           pwd.value = ''
-          pwd.placeholder = "請輸入 WiFiAP 密碼..."
+          pwd.placeholder = "請輸入密碼..."
       }
       </script>
    </body>

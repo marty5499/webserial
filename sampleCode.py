@@ -10,7 +10,7 @@ print(webai.cfg.get('wifi'))
 webai.cfg.get('wifi') == None
 
 #查看目前是否有wifi連線
-webai.esp8285.wifiConnect
+print(webai.esp8285.wifiConnect)
 # True or False
 
 
