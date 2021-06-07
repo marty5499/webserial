@@ -110,7 +110,6 @@
           fwNew.innerHTML = fwVer
           usb.style.display = 'None'
           await updateBoardState()
-
           await loadInfo()
           save.style.display = ''
           form.style.display = ''
@@ -118,8 +117,7 @@
       }
 
       async function updateBoardState(){
-        await webai.exec('usbConnected()')
-        await webai.exec('wifiDisconnect()')
+        await webai.exec("webai.show(file='wifi_err.jpg')")
       }
 
       async function loadInfo() {
@@ -143,7 +141,6 @@
       async function saveInfo() {
           var cmd = "webai.cfg.put('wifi',{'ssid':'" + ssid.value + "','pwd':'" + pwd.value + "'})";
           var resp = await webai.exec(cmd);
-          await webai.exec('wifiDisconnect()')
           msg.innerHTML = '已儲存，WiFi 連線中...'
           console.log("[saveInfo()]",resp)
           //msg
@@ -152,7 +149,7 @@
           console.log("[saveInfo()]",wifiState);
           if(wifiState.indexOf('True')>=0){
             msg.innerHTML = 'WiFi 已連接'
-            await webai.exec('wifiConnected()')
+           await webai.exec("webai.show(file='wifi_ok.jpg')")
           }else {
             msg.innerHTML = '連不上 WiFi '
             await webai.exec('wifiDisconnect()')
@@ -160,15 +157,10 @@
           //alert('儲存成功')
       }
 
-      async function checkFWVer() {
-
-      }
-
       async function setWiFiList() {
           var wifiList = await webai.exec("print(webai.esp8285.at('AT+CWLAP'))");
           addOption("可連接 WiFi...", "")
           var list = getWiFiList(wifiList)
-
           for (var i = 0; i < list.length; i++) {
               //[3, "KingKit_2.4G", -60, "78:24:af:ed:f6:38", 7]
               var wifiAP = list[i][1]

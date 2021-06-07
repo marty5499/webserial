@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>WebAI 設定畫面</title>
+</head>
+
+<body>
+  <button id="connect">Connect</button>
+  <script src='webai.js'></script>
+  <script type="text/javascript">
+  const connectButton = document.getElementById("connect");
+  connectButton.addEventListener('click', async function () {
+    try {
+      const filter = { usbVendorId: 6790 };
+      const serial = navigator.serial;
+      var serialPort = await serial.requestPort({ filters: [filter] });
+    } catch (e) {
+      console.log(e)
+    }
+  });
+  </script>
+</body>
+
+</html>

@@ -143,6 +143,7 @@ class WebAI {
 
     } while(rtnInfo.indexOf("_REPL_OK_")==-1)
     rtnInfo = rtnInfo.replace("_REPL_OK_",'').trim()
+    await new Promise(resolve => setTimeout(resolve, 100));
     return rtnInfo
   }
 
@@ -213,8 +214,6 @@ class WebAI {
     var { value, done } = await this.port.reader.read();
     return new TextDecoder().decode(value)
   }
-
-
 }
 
 webai = new WebAI()
