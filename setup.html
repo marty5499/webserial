@@ -1,47 +1,50 @@
 <!DOCTYPE html>
 <html>
-   <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width">
-      <title>WebAI 設定畫面</title>
-   </head>
-   <body>
-      <script src="https://code.jquery.com/jquery.min.js"></script>
-      <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
-      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
-      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-      <link rel="stylesheet" type="text/css" href="setup.css">
-      <br><br>
-      <div class="container-fluid container-bg2">
-         <div class="row">
-            <div class="col-md-2">
-            </div>
-            <div class="col-md-8">
-               <div class="row" style='height:100px'></div>
-               <div class="row   border border-primary">
-                  <div class="col-md-5  container-bg">
-                     <br>
-                     <h3 class="text-info text-center">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>WebAI 設定畫面</title>
+</head>
+
+<body>
+  <script src="https://code.jquery.com/jquery.min.js"></script>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" type="text/css" href="setup.css">
+  <br><br>
+  <div class="container-fluid container-bg2">
+    <div class="row">
+      <div class="col-md-2">
+      </div>
+      <div class="col-md-8">
+        <div class="row" style='height:100px'></div>
+        <div class="row   border border-primary">
+          <div class="col-md-5  container-bg">
+            <br>
+            <h3 class="text-info text-center">
                         Web:AI
                      </h3>
-                     <h5 class="text-info text-center">
+            <h5 class="text-info text-center">
                         <img alt="Bootstrap Image Preview" src="https://md.kingkit.codes/uploads/upload_94e07c1fa596fd14f3e99d18e268647c.png" class="rounded" width="50%" />
 
                         <br><button id='usb' class="btn btn-danger usb-btn" style='position: relative;top:10px' onclick='requestSerialPort()' >USB連線</button>
                      </h5>
-                     <h4 class="text-center" id='msg' display='None'></h4>
-                     <div id='fwInfo'>
-                        <div class="text-info text-center">
-                           Device ID: <span id='deviceID'>---</span><br>
-                           目前版本: <span id='fw' style='font-size:9px'>---</span><div></div>
-                           最新版本: <span id='fwNew' style='font-size:9px'>---</span>
-                        </div>
-                     </div>
-                     <br>
-                  </div>
-                  <div class="col-md-7 container-form" id='form'>
-                     <br>
-                     <h4 class="text-info text-center">
+            <h4 class="text-center" id='msg' display='None'></h4>
+            <div id='fwInfo'>
+              <div class="text-info text-center">
+                Device ID: <span id='deviceID'>---</span><br>
+                目前版本: <span id='fw' style='font-size:9px'>---</span>
+                <div></div>
+                最新版本: <span id='fwNew' style='font-size:9px'>---</span>
+              </div>
+            </div>
+            <br>
+          </div>
+          <div class="col-md-7 container-form" id='form'>
+            <br>
+            <h4 class="text-info text-center">
                      設定開發板 WiFi
                      </h6><br><br>
                      <div class="form-group row">
@@ -149,10 +152,10 @@
           console.log("[saveInfo()]",wifiState);
           if(wifiState.indexOf('True')>=0){
             msg.innerHTML = 'WiFi 已連接'
-           await webai.exec("webai.show(file='wifi_ok.jpg')")
+            await webai.exec("webai.show(file='wifi_ok.jpg')")
           }else {
             msg.innerHTML = '連不上 WiFi '
-            await webai.exec('wifiDisconnect()')
+            await webai.exec("webai.show(file='wifi_err.jpg')")
           }
           //alert('儲存成功')
       }
