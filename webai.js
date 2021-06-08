@@ -3,8 +3,9 @@ class Port {
   async init() {
     const serial = navigator.serial;
     const filter = { usbVendorId: 6790 };
-    this.serialPort = await serial.requestPort({ filters: [filter] });
+    //this.serialPort = await serial.requestPort({ filters: [filter] });
     //const speed = 1000000
+    this.serialPort = await serial.requestPort();
     const speed = 115200 * 1
     await this.serialPort.open({
       baudRate: speed,
