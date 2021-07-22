@@ -1,11 +1,11 @@
+/* eslint-disable */
 class Port {
 
   async init() {
     const serial = navigator.serial;
     const filter = { usbVendorId: 6790 };
-    //this.serialPort = await serial.requestPort({ filters: [filter] });
+    this.serialPort = await serial.requestPort({ filters: [filter] });
     //const speed = 1000000
-    this.serialPort = await serial.requestPort();
     const speed = 115200 * 1
     await this.serialPort.open({
       baudRate: speed,
@@ -47,9 +47,10 @@ class Port {
     var text = ''
     for (var i = 0; i < buf.length; i++) {
       text += String.fromCharCode(buf[i])
-      if (buf[i] == 0x0a) break
+      if (buf[i] == 0x0a) {
+        break
+      }
     }
-    text = text.trim();
     buf = buf.subarray(i + 1);
     return { text: text, buf: buf }
   }
@@ -97,11 +98,39 @@ class Port {
 
 class WebAI {
 
+  constructor() {
+    window._webai_msg = [];
+  }
+
+  updateMsg(msg) {
+    window._webai_msg.push(String(msg));
+  }
+
   async requestSerialPort() {
-    this.port = new Port()
-    await this.port.init()
-    await this.port.openReader()
-    await this.port.openWriter()
+    try {
+      this.updateMsg('requestSerialPort');
+      this.port = new Port()
+      await this.port.init()
+      await this.port.openReader()
+      await this.port.openWriter()
+      await webai.clearBuf()
+      await webai.fetchPatchCode('patch.py')
+    } catch (e) {
+      this.updateMsg(e);
+    }
+  }
+
+  async clearBuf() {
+    var rtnStr = ''
+    do {
+      rtnStr = await webai.exec("print('_CLEAR_OK_')",100)
+    } while (rtnStr.length != 12 || rtnStr != '_CLEAR_OK_\r\n')    
+  }
+
+  async fetchPatchCode(patchFileURL) {
+    const response = await fetch(patchFileURL);
+    var code = await response.text();
+    await webai.exec(code)
   }
 
   async restart() {
@@ -125,37 +154,53 @@ class WebAI {
     //*/
   }
 
-  async exec(code) {
-    //console.log(">>>", code, code.length)
-    await this.port.writeLine("execREPL");
-    await this.port.writeLine(code.length);
-    await this.port.writeLine(code)
-    // wait for data comming
-    
-    var rtnInfo = ''
-    do {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      var { value, done } = await this.port.reader.read();
-      var buf = value
+  async exec(code,respTimeout) {
+    try {
+      if(respTimeout==null){
+        respTimeout = 20
+      }
+      this.updateMsg(code);
+      await this.port.writeLine("execREPL");
+      await this.port.writeLine(code.length);
+      await this.port.writeLine(code)
+      var rtnInfo = ''
       do {
-        var { text, buf } = this.port.readLine(buf)
-        rtnInfo = rtnInfo + text + '\r\n'
-      } while (buf.length > 0)
-
-    } while(rtnInfo.indexOf("_REPL_OK_")==-1)
-    rtnInfo = rtnInfo.replace("_REPL_OK_",'').trim()
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return rtnInfo
+        await this.waitForSerialPort(respTimeout)
+        var { value, done } = await this.port.reader.read();
+        var buf = value
+        do {
+          var { text, buf } = this.port.readLine(buf)
+          rtnInfo = rtnInfo + text
+        } while (buf.length > 0)
+      } while (rtnInfo.indexOf("_REPL_OK_") == -1)
+      var trimPos = rtnInfo.indexOf("_REPL_OK_")
+      rtnInfo = rtnInfo.substring(0,trimPos)
+      await this.waitForSerialPort(50)
+      this.updateMsg(rtnInfo);
+      return rtnInfo
+    } catch (e) {
+      this.updateMsg(e);
+      console.log(e)
+    }
   }
 
+  async waitForSerialPort(t){
+    await new Promise(resolve => setTimeout(resolve, t));
+  }
 
   async cmd(cmd) {
-    cmd = cmd + "\r\n"
-    await this.port.writer.write(cmd);
-    var { value, done } = await this.port.reader.read();
-    var { text, buf } = this.port.readLine(value)
-    console.log("resp:", text);
-    return text
+    try {
+      cmd = cmd + "\r\n"
+      this.updateMsg(cmd);
+      await this.port.writer.write(cmd);
+      var { value, done } = await this.port.reader.read();
+      var { text, buf } = this.port.readLine(value)
+      console.log("resp:", text);
+      this.updateMsg(text);
+      return text
+    } catch (e) {
+      this.updateMsg(e);
+    }
   }
 
   async readBreak() {
@@ -166,26 +211,33 @@ class WebAI {
     return this.port.serialPort.readyToRead
   }
 
-  async cmd_clear() {
-    do {
-      await this.port.writeLine("clear");
-      var { value, done } = await this.port.reader.read();
-      var { text, buf } = this.port.readLine(value)
-    } while (text != 'cmd_clear OK')
-    return text
+  async getWiFiList() {
+    var data = await this.exec("print(webai.esp8285.at('AT+CWLAP'))")
+    return this.parseWiFiList(data)
+  }
+
+  async parseWiFiList(data) {
+    data = data.replace(/(?:\\[rn]|[\r\n]+)+/g, "");
+    var reg = /\(.[^\)]+\)/gm
+    var result = [];
+    var ele =''
+    while ((ele = reg.exec(data)) !== null) {
+      ele = ele[0].replace("(", "[").replace(")", "]")
+      if (ele.indexOf("\\x") > 0) continue
+      var row = JSON.parse(ele)
+      if (row[1] == '') continue
+      result.push(row[1])
+    }
+    return result
   }
 
   async cmd_mem() {
     await this.port.writeLine("mem");
-    // wait for data comming
-    await new Promise(resolve => setTimeout(resolve, 100));
     var { value, done } = await this.port.reader.read();
-    var memInfo = ''
-    do {
-      var { text, buf } = this.port.readLine(value)
-      memInfo += text + '\r\n'
-    } while (buf.length > 0)
-    return memInfo
+    var rtn = this.port.readLine(value)
+    var string = new TextDecoder().decode(rtn.buf);
+    console.log(rtn.text, '[', string, ']')
+    return rtn.text
   }
 
   async cmd_deviceID() {
@@ -217,4 +269,4 @@ class WebAI {
   }
 }
 
-webai = new WebAI()
+const webai = new WebAI()

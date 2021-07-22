@@ -101,9 +101,6 @@
 
       async function requestSerialPort() {
           await webai.requestSerialPort()
-          deviceID.innerHTML = await webai.cmd_clear()
-          deviceID.innerHTML = await webai.cmd_clear()
-          deviceID.innerHTML = await webai.cmd_clear()
           usb.innerHTML = 'USB連線'
           deviceID.innerHTML = await webai.cmd_deviceID()
           usb.className = usb.className.replace(/btn-danger/g, "btn-success");

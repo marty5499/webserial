@@ -5,81 +5,68 @@
   <meta charset="utf-8">
   <link rel="stylesheet" type="text/css" href="index.css">
 </head>
- 
+
 <body>
   <p>WebSerial:</p>
   <div class="btn-group-offline" style="width:100%">
     <button id='btn' style="width:20%" onclick="requestSerialPort()">取得連線</button>
-    <!--
-    <button style="width:20%" onclick="cmd_deviceID()">取得DeviceID</button>
-  -->
-    <button style="width:20%" onclick="cmd_webaiMem()">資訊</button>
     <button style="width:20%" onclick="cmd_snapshot()">拍照</button>
     <button style="width:20%" onclick="cmd_flashWrite()">燒錄</button>
     <button style="width:20%" onclick="cmd_flashRead()">讀檔</button>
-  </div><br><br>
+  </div>
+  <br><br>
   DeviceID: <span id='show'></span><br>
   <div>respText:<span id='msg'>waiting...</span></div>
-
-  <textarea id="code" rows="15" cols="50" onkeypress="keyCode(this,event)" onfocus="clearCode(this,event)"  
-    style="background-color:#111111;color:#fefefe"></textarea>
+  <textarea id="code" rows="15" cols="50" onkeypress="keyCode(this,event)" onfocus="clearCode(this,event)" style="background-color:#111111;color:#fefefe"></textarea>
   <textarea id="output" readonly='true' rows="15" cols="50" style="background-color:#111111;color:#fefefe"></textarea>
-  <br><br>
-
-
+  <br>
   <img id='jpg' width=320 height=240>
-
-
   <script src='webai.js'></script>
   <script type="text/javascript">
-    code = document.getElementById('code');
-    output = document.getElementById('output');
+  code = document.getElementById('code');
+  output = document.getElementById('output');
+  var last = ''
 
-    function clearCode(ta,event){
-      ta.value=''
+  async function test() {
+    await webai.cmd_clear()
+    for (var i = 0; i < 20000; i++) {
+      console.log("i:", i)
+      //output.value = await webai.exec('webai.fs.ls()',200)
+      output.value = await webai.exec('print("amt:' + i + '")', 20)
+      last = output.value
     }
+  }
 
-    async function keyCode(ta,event){
-      if(event.keyCode ==13){
-        output.value = ''
-        msg.innerHTML = "webai.exec()..."
-        code = ta.value.trim()
-        rtnMsg = await webai.exec(code)
-        output.value = rtnMsg
-        msg.innerHTML = "OK"
-      }
+  function clearCode(ta, event) {
+    ta.value = ''
+  }
+
+  async function keyCode(ta, event) {
+    if (event.keyCode == 13) {
+      output.value = ''
+      msg.innerHTML = "webai.exec()..."
+      code = ta.value.trim()
+      rtnMsg = await webai.exec(code)
+      output.value = rtnMsg
+      msg.innerHTML = "OK"
     }
-
-
-  async function updateBoardState(){
-    await webai.exec('usbConnected()')
-    await webai.exec('wifiDisconnect()')
   }
 
   async function requestSerialPort() {
     await webai.requestSerialPort()
-    msg.innerHTML = await webai.cmd_clear()
-    btn.innerHTML = '已連線'
-    show.innerHTML = await webai.cmd_deviceID()
-    await updateBoardState()
+    show.innerHTML = await webai.exec("print(webai.deviceID+' ,Ver:'+webai.ver)");
+    output.value = await webai.exec('webai.state()')
     g = document.getElementsByClassName('btn-group-offline')[0]
     g.className = 'btn-group'
-  }
-
-  async function cmd_webaiMem(){
-    console.log(await webai.cmd_mem())
-  }
-
-  async function cmd_deviceID() {
-    show.innerHTML = ''
-    show.innerHTML = await webai.cmd_deviceID()
+    btn.innerHTML = '已連線'
+    msg.innerHTML = 'OK'
   }
 
   async function cmd_flashWrite() {
-    var data = new Uint8Array([1,2,3])
+    var data = new Uint8Array([1, 2, 3])
     msg.innerHTML = "start..."
-    var resp = await webai.cmd_flashWrite(0xFF0000,data)
-    msg.innerHTML = "flash_write :"+resp
+    var resp = await webai.cmd_flashWrite(0xFF0000, data)
+    msg.innerHTML = "flash_write :" + resp
   }
 
   async function cmd_flashRead() {
@@ -87,28 +74,28 @@
     var cnt = 1
     // SPIFFS
     var addr = 0x400000
-    var totalSize = 3145727  // 0x6FFFFF - 0x400000 = 0x2FFFFF
-    var blockSize = 100*1024
+    var totalSize = 3145727 // 0x6FFFFF - 0x400000 = 0x2FFFFF
+    var blockSize = 100 * 1024
     var readSize = 0
     var percent = 0
     addr = 0xFF0000
-    totalSize = 3
+    //totalSize = 3
 
     var flashContent = []
     var stime = Date.now();
-    msg.innerHTML = 'read addr: '+addr+' , 0.0%'
+    msg.innerHTML = 'read addr: ' + addr + ' , 0.0%'
     var loop = async function () {
       flashContent.push(await webai.cmd_flashRead(addr, blockSize))
       await new Promise(r => setTimeout(r, 100));
-      if(readSize+blockSize > totalSize) {
-        blockSize = totalSize-readSize
-      }      
+      if (readSize + blockSize > totalSize) {
+        blockSize = totalSize - readSize
+      }
       readSize += blockSize
-      percent = parseInt(readSize/totalSize*1000)/10.0
-      var msgInfo = "read addr: 0x"+addr.toString(16)+" , "+percent+"%";
+      percent = parseInt(readSize / totalSize * 1000) / 10.0
+      var msgInfo = "read addr: 0x" + addr.toString(16) + " , " + percent + "%";
       msg.innerHTML = msgInfo
       console.log(msgInfo);
-      if(readSize == totalSize) {
+      if (readSize == totalSize) {
         return
       }
       addr += blockSize
@@ -119,12 +106,13 @@
   }
 
   async function cmd_snapshot() {
+    await webai.exec('webai.initCamera(True)')
     var cnt = 0
     var loop = async function () {
       blob = await webai.cmd_snapshot();
       jpg.src = URL.createObjectURL(blob);
       await new Promise(r => setTimeout(r, 10));
-      console.log("time:",cnt++)
+      console.log("time:", cnt++)
       //requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);

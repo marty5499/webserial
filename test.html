@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="index.css">
+</head>
+
+<body>
+  <p>WebSerial:</p>
+  <button id='btn' onclick="main()">取得連線</button>
+  <span id='_ssid'>SSID:<input id='ssid' type='text' value='webduino.io'></span>
+  <span id='_ssid'>PWD:<input id='pwd' type='text' value='webduino'></span>
+  <br>
+  <div id='display' style='font-size:1.2em'></div>
+  <script src='webai.js'></script>
+  <script type="text/javascript">
+  var msg = ''
+
+  function getStep(str) {
+    return "<br><span style='color:#ff6677'>" + str + "</span>"
+  }
+
+  function log(type, str) {
+    msg = msg + getStep(type) + str
+    display.innerHTML = msg
+  }
+
+  async function main() {
+    await webai.requestSerialPort()
+
+    btn.style['background-color'] = '#99ff99'
+    btn.innerHTML = '連線成功'
+
+    var exec = await webai.exec("print(webai.deviceID)")
+    log('Step1: 取得DeviceID:', exec)
+
+    var exec = await webai.exec("print(webai.ver)")
+    log('Step2: 取得版本號:', exec)
+
+    for (var i = 1; i <= 3; i++) {
+      var wifiList = await webai.getWiFiList()
+      log("Step3: (" + i + "/3) 取得WiFi清單OK ,數量:",
+        wifiList.length + "<br>WiFi清單："+wifiList)
+    }
+
+    var errMsg = 'Connect AP failed'
+
+    var okMsg = 'True[esp8285] wifi state: True 1'
+
+    log("Step4: 連線不存在的wifi",",請等候30秒....")
+    var connectErrorAP = (""+await webai.exec('print(webai.connect("___A","B"))',30*1000)).replaceAll("\r\n","")
+    log("  回傳結果：",connectErrorAP.indexOf(errMsg)>0 ? "符合預期":"有問題："+connectErrorAP)
+    
+    log("Step5: 連線預設 wifi",",請等候30秒....")
+    var connectAP = (""+await webai.exec('print(webai.connect("'+ssid.value+'","'+pwd.value+'"))',30*1000)).replaceAll("\r\n","")
+    log("  回傳結果：",connectAP==okMsg ?  "符合預期":"有問題："+connectAP)
+
+    log("Step6: 連線不存在的wifi",",請等候30秒....")
+    var connectErrorAP = (""+await webai.exec('print(webai.connect("___A","B"))',30*1000)).replaceAll("\r\n","")
+    log("  回傳結果：",connectErrorAP.indexOf(errMsg)>0 ? "符合預期":"有問題："+connectErrorAP)
+
+    log("Step7: 連線預設 wifi",",請等候30秒....")
+    var connectAP = (""+await webai.exec('print(webai.connect("'+ssid.value+'","'+pwd.value+'"))',30*1000)).replaceAll("\r\n","")
+    log("  回傳結果：",connectAP==okMsg ?  "符合預期":"有問題："+connectAP)   
+  }
+
+  </script>
+</body>
+
+</html>
