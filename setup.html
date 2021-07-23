@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  <title>WebAI 設定畫面 ver2</title>
+  <title>WebAI 設定畫面 ver3</title>
 </head>
 
 <body>
@@ -113,7 +113,6 @@
           await loadInfo()
           save.style.display = ''
           form.style.display = ''
-          //0.1.6_0529_01 (最新版)
       }
 
       async function updateBoardState(){
@@ -150,23 +149,18 @@
           if(wifiState.indexOf('True')>=0){
             msg.innerHTML = 'WiFi 已連接'
             await webai.exec("webai.show(file='wifi_ok.jpg')")
+            await webai.exec("mqttInit()")
           }else {
             msg.innerHTML = '連不上 WiFi '
             await webai.exec("webai.show(file='wifi_err.jpg')")
           }
-          //alert('儲存成功')
       }
 
       async function setWiFiList() {
-          var wifiList = await webai.exec("print(webai.esp8285.at('AT+CWLAP'))");
           addOption("可連接 WiFi...", "")
-          var list = getWiFiList(wifiList)
+          var list = await webai.getWiFiList()
           for (var i = 0; i < list.length; i++) {
-              //[3, "KingKit_2.4G", -60, "78:24:af:ed:f6:38", 7]
-              var wifiAP = list[i][1]
-              if (wifiAP.indexOf(":") == -1) {
-                  addOption(list[i][1], list[i][1])
-              }
+              addOption(list[i], list[i])
           }
       }
 
@@ -176,19 +170,6 @@
           option.text = name
           option.value = value
           scan.add(option);
-      }
-
-      function getWiFiList(data) {
-          data = data.substring(data.indexOf('['))
-          data = data.replace(/(?:\\[rn]|[\r\n]+)+/g, "");
-          var reg = /\(.*?\)/g;
-          var result = [];
-          while ((ele = reg.exec(data)) !== null) {
-              ele = ele[0].replaceAll('\"', '"')
-              ele = ele.replace("(", "[").replace(")", "]")
-              result.push(JSON.parse(ele))
-          }
-          return result
       }
 
       function selectWiFiAP(ele, event) {

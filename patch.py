@@ -32,10 +32,9 @@ cmdSerial.print = xxx1
 cmdSerial.readLine = xxx2
 cmdSerial.execREPL = xxx3
 
-'''
-from webai import *
-webai.init(camera=False,speed=10)
-webai.esp8285.uart_cb = UART(UART.UART3, 115200,timeout=5000,read_buf_len=10240,callback=webai.esp8285.mqttCallback)
-webai.mqtt.sub('PING',webai.cmdProcess.sub,includeID=True)
-webai.cmdProcess.reportBoot()
-'''
+def mqttInit():
+    from webai import *
+    webai.init(camera=False,speed=10)
+    webai.esp8285.uart_cb = UART(UART.UART3, 115200,timeout=5000,read_buf_len=10240,callback=webai.esp8285.mqttCallback)
+    webai.mqtt.sub('PING',webai.cmdProcess.sub,includeID=True)
+    webai.cmdProcess.reportBoot()
